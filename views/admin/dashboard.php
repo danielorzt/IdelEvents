@@ -1,14 +1,27 @@
 <?php
 session_start();
-if (!isset($_SESSION['id_usuario']) {
-    header("Location: ../login.php");
+// Evitar que el navegador cachee esta página
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
+// Verificación de sesión y rol
+if (!isset($_SESSION['id_usuario'])) {
+    header("Location: /IdealEventsx/views/login.php");
     exit();
 }
 
+// Para dashboard de admin
 if ($_SESSION['rol'] !== 'admin') {
-    header("Location: ../cliente/dashboard.php");
+    header("Location: /IdealEventsx/views/dashboard.php");
     exit();
 }
+
+// Para dashboard de cliente
+// if ($_SESSION['rol'] !== 'cliente') {
+//     header("Location: /IdealEventsx/views/admin/dashboard.php");
+//     exit();
+// }
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -54,7 +67,7 @@ if ($_SESSION['rol'] !== 'admin') {
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="dashboard.php">
-            <img src="../public/logo/logo.png" alt="Logo" class="navbar-logo">
+            <img src="../../public/logo/logo.png" alt="Logo" class="navbar-logo">
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
@@ -81,7 +94,7 @@ if ($_SESSION['rol'] !== 'admin') {
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><a class="dropdown-item" href="perfil.php"><i class="bi bi-person me-2"></i> Mi Perfil</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i> Cerrar sesión</a></li>
+                    <li><a class="dropdown-item text-danger" href="/IdealEventsx/logout.php"><i class="bi bi-box-arrow-right me-2"></i> Cerrar sesión</a></li>
                 </ul>
             </div>
         </div>

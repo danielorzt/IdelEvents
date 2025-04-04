@@ -10,8 +10,14 @@ if (isset($_SESSION['id_usuario'])) {
 // Manejo de mensajes de retroalimentación
 $msg = $_GET['msg'] ?? '';
 $status = $_GET['status'] ?? '';
-?>
 
+// Obtener y limpiar mensajes de error de la sesión
+$error = '';
+if (isset($_SESSION['error'])) {
+    $error = $_SESSION['error'];
+    unset($_SESSION['error']);
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -52,12 +58,19 @@ $status = $_GET['status'] ?? '';
 </head>
 <body>
 <div class="container">
+    <?php if (!empty($error)): ?>
+        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+            <?php echo htmlspecialchars($error); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
     <div class="row justify-content-center">
         <div class="col-md-6">
             <!-- Formulario de Inicio de Sesión -->
             <div class="login-container">
                 <h2 class="form-title">Iniciar Sesión</h2>
-                <form action="../controllers/LoginController.php" method="POST">
+                <form action="/IdealEventsx/index.php?controller=Login&action=login" method="POST">
                     <div class="mb-3">
                         <input type="email" class="form-control" name="email" placeholder="Correo electrónico" required>
                     </div>
@@ -73,7 +86,7 @@ $status = $_GET['status'] ?? '';
             <!-- Formulario de Registro -->
             <div class="login-container">
                 <h2 class="form-title">Registrarse</h2>
-                <form action="controllers/RegisterController.php" method="POST">
+                <form action="/IdealEventsx/controllers/RegisterController.php" method="POST" id="registerForm">
                     <div class="mb-3">
                         <select class="form-select" name="tipo_documento" required>
                             <option value="" disabled selected>Tipo de documento</option>
@@ -105,9 +118,9 @@ $status = $_GET['status'] ?? '';
                         <input type="email" class="form-control" name="email" placeholder="Correo electrónico" required>
                     </div>
                     <div class="mb-3">
-                        <input type="password" class="form-control" name="password" placeholder="Contraseña" required>
+                        <input type="password" class="form-control" name="password" placeholder="Contraseña" required minlength="6">
                     </div>
-                    <button type="submit" class="btn btn-success" name="register">Registrarse</button>
+                    <button type="submit" class="btn btn-success" id="btnRegistro">Registrarse</button>
                 </form>
             </div>
         </div>
@@ -116,6 +129,18 @@ $status = $_GET['status'] ?? '';
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Mostrar mensaje de error de la sesión si existe
+        <?php if (!empty($error)): ?>
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: '<?php echo addslashes($error); ?>',
+            timer: 3000,
+            showConfirmButton: false
+        });
+        <?php endif; ?>
+
+        // Mostrar mensajes de URL si existen
         const msg = "<?php echo htmlspecialchars($msg, ENT_QUOTES); ?>";
         const status = "<?php echo htmlspecialchars($status, ENT_QUOTES); ?>";
 
@@ -128,6 +153,46 @@ $status = $_GET['status'] ?? '';
                 showConfirmButton: false
             });
         }
+
+        // Corregir la palabra "document" (faltaba la d)
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            // Validar que no haya opciones vacías seleccionadas
+            const tipoDoc = document.querySelector('[name="tipo_documento"]');
+            const genero = document.querySelector('[name="genero"]');
+
+            if (tipoDoc.value === "" || genero.value === "") {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Por favor selecciona un tipo de documento y género',
+                    icon: 'error'
+                });
+                return false;
+            }
+
+            // Asegúrate de que todos los campos requeridos están llenos
+            const requiredFields = this.querySelectorAll('[required]');
+            let allFilled = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    allFilled = false;
+                    field.classList.add('is-invalid');
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+
+            if (!allFilled) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Todos los campos son obligatorios',
+                    icon: 'error'
+                });
+                return false;
+            }
+        });
     });
 </script>
 

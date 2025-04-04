@@ -26,8 +26,6 @@ class Conexion
 
                 self::$conexion = new PDO($dsn, self::$usuario, self::$password, $opciones);
 
-                return self::$conexion;
-
             } catch (PDOException $e) {
                 // Mensaje más detallado para debugging (quitar en producción)
                 $errorMsg = "Error de conexión: " . $e->getMessage() . "\n";
@@ -41,6 +39,7 @@ class Conexion
         return self::$conexion;
     }
 
+    // Este método debería ser sinónimo de obtenerConexion
     public static function conectar() {
         return self::obtenerConexion();
     }
