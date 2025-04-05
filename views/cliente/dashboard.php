@@ -413,6 +413,7 @@ foreach ($misInscripciones as $inscripcion) {
                 <th>Acciones</th>
             </tr>
             </thead>
+            <!-- Tabla de inscripciones corregida -->
             <tbody>
             <?php foreach ($misInscripciones as $inscripcion):
                 $evento = EventoModel::mdlObtenerEventoPorId($inscripcion['id_evento']);
@@ -437,7 +438,8 @@ foreach ($misInscripciones as $inscripcion) {
                             <i class="bi bi-eye"></i>
                         </a>
                         <?php if ($estadoPago !== 'completado'): ?>
-                            <a href="realizar_pago.php?id=<?= $inscripcion['id_inscripcion'] ?>" class="btn btn-sm btn-success">
+                            <!-- CORREGIDO: Ahora pasamos el id_evento en lugar del id_inscripcion -->
+                            <a href="realizar_pago.php?id=<?= $evento['id_evento'] ?>" class="btn btn-sm btn-success">
                                 <i class="bi bi-credit-card"></i>
                             </a>
                         <?php endif; ?>
@@ -505,16 +507,22 @@ foreach ($misInscripciones as $inscripcion) {
 </div>
 
 <!-- Newsletter Subscription -->
-<section class="bg-light py-5">
+<section class="bg-light py-5" id="newsletter">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
                 <h2 class="mb-4">¡Mantente Informado!</h2>
                 <p class="lead mb-4">Suscríbete a nuestro boletín para recibir notificaciones sobre nuevos eventos y promociones exclusivas.</p>
-                <div class="input-group mb-3 w-75 mx-auto">
-                    <input type="email" class="form-control" placeholder="Tu correo electrónico" aria-label="Email">
-                    <button class="btn btn-primary" type="button">Suscribirme</button>
-                </div>
+                <form id="newsletterForm" class="w-75 mx-auto">
+                    <div class="input-group mb-3">
+                        <input type="email" class="form-control" id="newsletterEmail" placeholder="Tu correo electrónico" aria-label="Email" required>
+                        <button class="btn btn-primary" type="submit" id="btnSuscribir">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="spinnerNewsletter"></span>
+                            <span id="btnText">Suscribirme</span>
+                        </button>
+                    </div>
+                </form>
+                <div id="newsletterMessage" class="mt-3"></div>
                 <p class="text-muted"><small>No compartimos tu correo electrónico con nadie.</small></p>
             </div>
         </div>
@@ -791,6 +799,52 @@ foreach ($misInscripciones as $inscripcion) {
             confirmButtonColor: '#e74a3b'
         });
         <?php endif; ?>
+
+        // Agregar este script en la sección JS existente, dentro del document.ready
+// Manejar el formulario de suscripción al boletín
+        $('#newsletterForm').on('submit', function(e) {
+            e.preventDefault();
+
+            const email = $('#newsletterEmail').val().trim();
+            const btnText = $('#btnText');
+            const spinner = $('#spinnerNewsletter');
+            const btnSuscribir = $('#btnSuscribir');
+
+            if (email === '') {
+                $('#newsletterMessage').html('<div class="alert alert-danger">Por favor, introduce un correo electrónico válido.</div>');
+                return false;
+            }
+
+            // Mostrar spinner y deshabilitar botón
+            btnText.text('Enviando...');
+            spinner.removeClass('d-none');
+            btnSuscribir.prop('disabled', true);
+
+            // Enviar solicitud AJAX
+            $.ajax({
+                url: '../../controllers/NewsletterController.php',
+                type: 'POST',
+                dataType: 'json',
+                data: { email: email },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#newsletterMessage').html('<div class="alert alert-success">' + response.message + '</div>');
+                        $('#newsletterEmail').val(''); // Limpiar el campo
+                    } else {
+                        $('#newsletterMessage').html('<div class="alert alert-danger">' + response.message + '</div>');
+                    }
+                },
+                error: function() {
+                    $('#newsletterMessage').html('<div class="alert alert-danger">Error de conexión. Por favor, inténtalo de nuevo más tarde.</div>');
+                },
+                complete: function() {
+                    // Restaurar botón
+                    btnText.text('Suscribirme');
+                    spinner.addClass('d-none');
+                    btnSuscribir.prop('disabled', false);
+                }
+            });
+        });
     });
 </script>
 </body>

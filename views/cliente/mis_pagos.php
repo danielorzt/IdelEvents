@@ -16,7 +16,10 @@ include_once "../../models/PagoModel.php";
 // Obtener pagos del usuario
 $id_usuario = $_SESSION['id_usuario'];
 $pagos = PagoModel::mdlObtenerPagosPorUsuario($id_usuario);
+
+
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -106,140 +109,96 @@ $pagos = PagoModel::mdlObtenerPagosPorUsuario($id_usuario);
         </div>
     <?php endif; ?>
 
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Mis Pagos</h5>
+            <div class="btn-group">
+                <button type="button" class="btn btn-light btn-sm filter-btn active" data-filter="all">Todos</button>
+                <button type="button" class="btn btn-light btn-sm filter-btn" data-filter="pending">Pendientes</button>
+                <button type="button" class="btn btn-light btn-sm filter-btn" data-filter="completed">Completados</button>
+            </div>
+        </div>
+    </div>
+
     <?php if (empty($pagos)): ?>
         <div class="alert alert-info">
             <p class="mb-0">No tienes pagos registrados. Cuando realices una inscripción y su pago, aparecerán aquí.</p>
         </div>
     <?php else: ?>
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Historial de Pagos</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                        <tr>
-                            <th>ID Pago</th>
-                            <th>Evento</th>
-                            <th>Fecha</th>
-                            <th>Monto</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="pagosTable">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Evento</th>
+                        <th>Fecha</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($pagos as $pago):
+                        $statusClass = '';
+                        $statusText = '';
+                        $rowClass = '';
+
+                        switch ($pago['estado_pago']) {
+                            case 'completado':
+                                $statusClass = 'completed';
+                                $statusText = 'Completado';
+                                $rowClass = 'payment-completed';
+                                break;
+                            case 'pendiente':
+                                $statusClass = 'pending';
+                                $statusText = 'Pendiente';
+                                $rowClass = 'payment-pending';
+                                break;
+                            case 'rechazado':
+                                $statusClass = 'rejected';
+                                $statusText = 'Rechazado';
+                                $rowClass = 'payment-rejected';
+                                break;
+                            default:
+                                $statusClass = '';
+                                $statusText = 'Desconocido';
+                                $rowClass = '';
+                        }
+                        ?>
+                        <tr class="<?= $rowClass ?>">
+                            <td><span class="badge bg-secondary"><?= $pago['id_pago'] ? 'Pago #'.substr(md5($pago['id_pago']), 0, 5) : 'Pendiente' ?></span></td>
+                            <td><?= htmlspecialchars($pago['evento_titulo']) ?></td>
+                            <td><?= date('d/m/Y', strtotime($pago['fecha_pago'])) ?></td>
+                            <td>$<?= number_format($pago['monto'], 2) ?></td>
+                            <td>
+                                <span class="payment-status <?= $statusClass ?>"><?= $statusText ?></span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalDetallePago<?= $pago['id_pago'] ? $pago['id_pago'] : ('ev_' . $pago['id_evento']) ?>">
+                                    <i class="bi bi-info-circle"></i> Detalles
+                                </button>
+
+                                <?php if ($pago['estado_pago'] === 'completado' && $pago['id_pago'] > 0): ?>
+                                    <a href="../../controllers/ReciboController.php?id_pago=<?= $pago['id_pago'] ?>" class="btn btn-sm btn-outline-success" target="_blank">
+                                        <i class="bi bi-download"></i> Recibo
+                                    </a>
+                                <?php elseif ($pago['estado_pago'] === 'pendiente'): ?>
+                                    <a href="realizar_pago.php?id=<?= $pago['id_evento'] ?>" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-credit-card"></i> Pagar
+                                    </a>
+                                <?php endif; ?>
+                            </td>
                         </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($pagos as $pago): ?>
-                            <tr>
-                                <td>#<?= $pago['id_pago'] ?></td>
-                                <td><?= htmlspecialchars($pago['evento_titulo']) ?></td>
-                                <td><?= date('d/m/Y H:i', strtotime($pago['fecha_pago'])) ?></td>
-                                <td>$<?= number_format($pago['monto'], 2) ?></td>
-                                <td>
-                                    <?php
-                                    $statusClass = '';
-                                    $statusText = '';
-
-                                    switch ($pago['estado_pago']) {
-                                        case 'completado':
-                                            $statusClass = 'completed';
-                                            $statusText = 'Completado';
-                                            break;
-                                        case 'pendiente':
-                                            $statusClass = 'pending';
-                                            $statusText = 'Pendiente';
-                                            break;
-                                        case 'rechazado':
-                                            $statusClass = 'rejected';
-                                            $statusText = 'Rechazado';
-                                            break;
-                                        default:
-                                            $statusClass = '';
-                                            $statusText = 'Desconocido';
-                                    }
-                                    ?>
-                                    <span class="payment-status <?= $statusClass ?>"><?= $statusText ?></span>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalDetallePago<?= $pago['id_pago'] ?>">
-                                        <i class="bi bi-info-circle"></i> Detalles
-                                    </button>
-
-                                    <?php if ($pago['estado_pago'] === 'completado'): ?>
-                                        <a href="#" class="btn btn-sm btn-outline-success">
-                                            <i class="bi bi-download"></i> Recibo
-                                        </a>
-                                    <?php elseif ($pago['estado_pago'] === 'pendiente'): ?>
-                                        <a href="realizar_pago.php?id=<?= $pago['id_evento'] ?>" class="btn btn-sm btn-warning">
-                                            <i class="bi bi-credit-card"></i> Pagar
-                                        </a>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-
-                            <!-- Modal de Detalle de Pago -->
-                            <div class="modal fade" id="modalDetallePago<?= $pago['id_pago'] ?>" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title"><i class="bi bi-info-circle me-2"></i>Detalle de Pago #<?= $pago['id_pago'] ?></h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <div class="card-body">
-                                                <div class="row mb-3">
-                                                    <div class="col-sm-4 fw-bold">ID de Pago:</div>
-                                                    <div class="col-sm-8">#<?= $pago['id_pago'] ?></div>
-                                                </div>
-                                                <div class="row mb-3">
-                                                    <div class="col-sm-4 fw-bold">Evento:</div>
-                                                    <div class="col-sm-8"><?= htmlspecialchars($pago['evento_titulo']) ?></div>
-                                                </div>
-                                                <div class="row mb-3">
-                                                    <div class="col-sm-4 fw-bold">Fecha del Evento:</div>
-                                                    <div class="col-sm-8"><?= date('d/m/Y', strtotime($pago['evento_fecha'])) ?></div>
-                                                </div>
-                                                <div class="row mb-3">
-                                                    <div class="col-sm-4 fw-bold">Fecha de Pago:</div>
-                                                    <div class="col-sm-8"><?= date('d/m/Y H:i', strtotime($pago['fecha_pago'])) ?></div>
-                                                </div>
-                                                <div class="row mb-3">
-                                                    <div class="col-sm-4 fw-bold">Monto:</div>
-                                                    <div class="col-sm-8">$<?= number_format($pago['monto'], 2) ?></div>
-                                                </div>
-                                                <div class="row mb-3">
-                                                    <div class="col-sm-4 fw-bold">Estado:</div>
-                                                    <div class="col-sm-8">
-                                                        <span class="payment-status <?= $statusClass ?>"><?= $statusText ?></span>
-                                                    </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-sm-4 fw-bold">Método de Pago:</div>
-                                                    <div class="col-sm-8">Tarjeta de Crédito (****1234)</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <?php if ($pago['estado_pago'] === 'completado'): ?>
-                                                <a href="#" class="btn btn-outline-success">
-                                                    <i class="bi bi-download me-1"></i> Descargar Recibo
-                                                </a>
-                                            <?php elseif ($pago['estado_pago'] === 'pendiente'): ?>
-                                                <a href="realizar_pago.php?id=<?= $pago['id_evento'] ?>" class="btn btn-warning">
-                                                    <i class="bi bi-credit-card me-1"></i> Completar Pago
-                                                </a>
-                                            <?php endif; ?>
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        <!-- Modal para este pago... -->
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
+    </div>
 
         <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
             <div class="col">
@@ -329,5 +288,68 @@ $pagos = PagoModel::mdlObtenerPagosPorUsuario($id_usuario);
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Script de filtrado cargado");
+
+        // Botones de filtro simplificados
+        const todosBtn = document.querySelector('button[data-filter="all"], .btn:contains("Todos")');
+        const pendientesBtn = document.querySelector('button[data-filter="pending"], .btn:contains("Pendientes")');
+        const completadosBtn = document.querySelector('button[data-filter="completed"], .btn:contains("Completados")');
+
+        // Tabla con sus filas
+        const tabla = document.querySelector('table.table');
+        const filas = tabla ? tabla.querySelectorAll('tbody tr') : [];
+
+        console.log("Elementos encontrados:", {
+            todosBtn: todosBtn ? "Sí" : "No",
+            pendientesBtn: pendientesBtn ? "Sí" : "No",
+            completadosBtn: completadosBtn ? "Sí" : "No",
+            tabla: tabla ? "Sí" : "No",
+            filas: filas.length
+        });
+
+        // Función para filtrar
+        function filtrarPagos(tipo) {
+            if (!filas.length) return;
+
+            filas.forEach(function(fila) {
+                const estadoCell = fila.querySelector('td:nth-child(5)');
+                if (!estadoCell) return;
+
+                const estadoTexto = estadoCell.textContent.trim();
+
+                if (tipo === 'all') {
+                    fila.style.display = '';
+                } else if (tipo === 'pending' && estadoTexto.includes('Pendiente')) {
+                    fila.style.display = '';
+                } else if (tipo === 'completed' && estadoTexto.includes('Completado')) {
+                    fila.style.display = '';
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+        }
+
+        // Asignar eventos
+        if (todosBtn) {
+            todosBtn.addEventListener('click', function() {
+                filtrarPagos('all');
+            });
+        }
+
+        if (pendientesBtn) {
+            pendientesBtn.addEventListener('click', function() {
+                filtrarPagos('pending');
+            });
+        }
+
+        if (completadosBtn) {
+            completadosBtn.addEventListener('click', function() {
+                filtrarPagos('completed');
+            });
+        }
+    });
+</script>
 </body>
 </html>

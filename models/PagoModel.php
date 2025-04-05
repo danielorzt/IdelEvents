@@ -68,27 +68,115 @@ class PagoModel {
         }
     }
 
+
     /**
      * Obtiene todos los pagos de un usuario
      */
     public static function mdlObtenerPagosPorUsuario($id_usuario) {
         try {
             $conexion = Conexion::conectar();
-            $stmt = $conexion->prepare("
-                SELECT p.*, e.titulo as evento_titulo, e.fecha as evento_fecha 
-                FROM pago p
-                JOIN evento e ON p.id_evento = e.id_evento 
-                WHERE p.id_usuario = :id_usuario
-                ORDER BY p.fecha_pago DESC
-            ");
 
-            $stmt->bindParam(":id_usuario", $id_usuario, PDO::PARAM_INT);
-            $stmt->execute();
+            // Registra mensaje para depuración
+            error_log("Buscando pagos para usuario ID: " . $id_usuario);
 
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Primero, obtenemos las inscripciones del usuario
+            $inscripciones = [];
+            $stmtInscripciones = $conexion->prepare("
+            SELECT 
+                i.id_inscripcion, 
+                i.id_evento, 
+                i.fecha_inscripcion,
+                e.titulo as evento_titulo,
+                e.fecha as evento_fecha,
+                e.precio as evento_precio
+            FROM inscripcion i
+            JOIN evento e ON i.id_evento = e.id_evento
+            WHERE i.id_usuario = :id_usuario
+        ");
+            $stmtInscripciones->bindParam(":id_usuario", $id_usuario, PDO::PARAM_INT);
+            $stmtInscripciones->execute();
+            $inscripciones = $stmtInscripciones->fetchAll(PDO::FETCH_ASSOC);
+
+            // Ahora, obtenemos los pagos del usuario
+            $pagos = [];
+            $stmtPagos = $conexion->prepare("
+            SELECT 
+                p.id_pago,
+                p.id_evento,
+                p.fecha_pago,
+                p.monto,
+                p.estado_pago,
+                e.titulo as evento_titulo,
+                e.fecha as evento_fecha
+            FROM pago p
+            JOIN evento e ON p.id_evento = e.id_evento
+            WHERE p.id_usuario = :id_usuario
+        ");
+            $stmtPagos->bindParam(":id_usuario", $id_usuario, PDO::PARAM_INT);
+            $stmtPagos->execute();
+            $pagos = $stmtPagos->fetchAll(PDO::FETCH_ASSOC);
+
+            // Creamos un array asociativo para comprobar qué inscripciones ya tienen pago
+            $eventosPagados = [];
+            foreach($pagos as $pago) {
+                $eventosPagados[$pago['id_evento']] = true;
+            }
+
+            // Agregamos como "pendientes" las inscripciones sin pago
+            $resultado = $pagos;
+            foreach($inscripciones as $inscripcion) {
+                if (!isset($eventosPagados[$inscripcion['id_evento']])) {
+                    $resultado[] = [
+                        'id_pago' => 0,
+                        'id_evento' => $inscripcion['id_evento'],
+                        'fecha_pago' => $inscripcion['fecha_inscripcion'],
+                        'monto' => $inscripcion['evento_precio'],
+                        'estado_pago' => 'pendiente',
+                        'evento_titulo' => $inscripcion['evento_titulo'],
+                        'evento_fecha' => $inscripcion['evento_fecha'],
+                    ];
+                }
+            }
+
+            error_log("Número de pagos encontrados: " . count($resultado));
+            return $resultado;
         } catch (PDOException $e) {
             error_log("Error al obtener pagos: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Obtiene detalles de un pago específico
+     */
+    public static function mdlObtenerPagoPorId($id_pago) {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("
+                SELECT 
+                    p.*,
+                    e.titulo as evento_titulo,
+                    e.fecha as evento_fecha,
+                    e.hora as evento_hora,
+                    e.ubicacion as evento_ubicacion,
+                    e.categoria as evento_categoria,
+                    u.nombre as usuario_nombre,
+                    u.apellido as usuario_apellido,
+                    u.email as usuario_email,
+                    u.documento as usuario_documento
+                FROM pago p
+                JOIN evento e ON p.id_evento = e.id_evento
+                JOIN usuario u ON p.id_usuario = u.id_usuario
+                WHERE p.id_pago = :id_pago
+            ");
+
+            $stmt->bindParam(":id_pago", $id_pago, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error al obtener detalles del pago: " . $e->getMessage());
+            return null;
         }
     }
 
@@ -119,4 +207,3 @@ class PagoModel {
         }
     }
 }
-?>
