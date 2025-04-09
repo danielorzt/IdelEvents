@@ -3,10 +3,19 @@ include_once __DIR__ . "/Conexion.php";
 
 class EventoModel
 {
+    /**
+     * Obtiene todos los eventos ordenados por fecha descendente
+     * @return array
+     */
     public static function mdlListarEventos() {
         try {
             $conexion = Conexion::conectar();
-            $stmt = $conexion->prepare("SELECT * FROM evento ORDER BY fecha DESC");
+            $stmt = $conexion->prepare("
+                SELECT e.*, u.nombre as creador_nombre 
+                FROM evento e
+                LEFT JOIN usuario u ON e.creado_por = u.id_usuario
+                ORDER BY e.fecha DESC
+            ");
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -15,7 +24,14 @@ class EventoModel
         }
     }
 
-    // Método para buscar y filtrar eventos
+    /**
+     * Busca y filtra eventos
+     * @param string $busqueda Término de búsqueda
+     * @param string $categoria Categoría del evento
+     * @param string $mes Mes del evento
+     * @param string $precio Rango de precios
+     * @return array
+     */
     public static function mdlBuscarEventos($busqueda = '', $categoria = '', $mes = '', $precio = '') {
         try {
             $conexion = Conexion::conectar();
@@ -95,7 +111,10 @@ class EventoModel
         }
     }
 
-    // Obtener categorías únicas de eventos
+    /**
+     * Obtiene todas las categorías únicas de eventos
+     * @return array
+     */
     public static function mdlObtenerCategorias() {
         try {
             $conexion = Conexion::conectar();
@@ -108,10 +127,20 @@ class EventoModel
         }
     }
 
+    /**
+     * Obtiene un evento por su ID
+     * @param int $id ID del evento
+     * @return array|null
+     */
     public static function mdlObtenerEventoPorId($id) {
         try {
             $conexion = Conexion::conectar();
-            $stmt = $conexion->prepare("SELECT * FROM evento WHERE id_evento = :id");
+            $stmt = $conexion->prepare("
+                SELECT e.*, u.nombre as creador_nombre 
+                FROM evento e
+                LEFT JOIN usuario u ON e.creado_por = u.id_usuario
+                WHERE e.id_evento = :id
+            ");
             $stmt->bindParam(":id", $id, PDO::PARAM_INT);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -121,21 +150,50 @@ class EventoModel
         }
     }
 
-    public static function mdlAgregarEvento($titulo, $descripcion, $fecha, $hora, $ubicacion, $categoria, $precio, $imagen = null) {
+    /**
+     * Agrega un nuevo evento
+     * @param string $titulo Título del evento
+     * @param string $descripcion Descripción del evento
+     * @param string $fecha Fecha del evento
+     * @param string $hora Hora del evento
+     * @param string $ubicacion Ubicación del evento
+     * @param string $categoria Categoría del evento
+     * @param float $precio Precio del evento
+     * @param string|null $imagen Ruta de la imagen
+     * @param int $creado_por ID del usuario que crea el evento
+     * @param int $destacado 1 si es destacado, 0 si no
+     * @return bool
+     */
+    public static function mdlAgregarEvento($titulo, $descripcion, $fecha, $hora, $ubicacion, $categoria, $precio, $imagen = null, $creado_por = null, $destacado = 0) {
         try {
             $conexion = Conexion::conectar();
 
-            // Add image field to the query if an image was provided
-            if ($imagen) {
-                $stmt = $conexion->prepare("INSERT INTO evento 
-                    (titulo, descripcion, fecha, hora, ubicacion, categoria, precio, imagen_nombre) 
-                    VALUES (:titulo, :descripcion, :fecha, :hora, :ubicacion, :categoria, :precio, :imagen)");
-                $stmt->bindParam(":imagen", $imagen, PDO::PARAM_STR);
-            } else {
-                $stmt = $conexion->prepare("INSERT INTO evento 
-                    (titulo, descripcion, fecha, hora, ubicacion, categoria, precio) 
-                    VALUES (:titulo, :descripcion, :fecha, :hora, :ubicacion, :categoria, :precio)");
+            $sql = "INSERT INTO evento 
+                   (titulo, descripcion, fecha, hora, ubicacion, categoria, precio, creado_por";
+
+            // Agregar campos opcionales si están presentes
+            if ($imagen !== null) {
+                $sql .= ", imagen_nombre";
             }
+
+            if ($destacado !== null) {
+                $sql .= ", destacado";
+            }
+
+            $sql .= ") VALUES (:titulo, :descripcion, :fecha, :hora, :ubicacion, :categoria, :precio, :creado_por";
+
+            // Agregar valores para campos opcionales
+            if ($imagen !== null) {
+                $sql .= ", :imagen";
+            }
+
+            if ($destacado !== null) {
+                $sql .= ", :destacado";
+            }
+
+            $sql .= ")";
+
+            $stmt = $conexion->prepare($sql);
 
             $stmt->bindParam(":titulo", $titulo, PDO::PARAM_STR);
             $stmt->bindParam(":descripcion", $descripcion, PDO::PARAM_STR);
@@ -144,6 +202,16 @@ class EventoModel
             $stmt->bindParam(":ubicacion", $ubicacion, PDO::PARAM_STR);
             $stmt->bindParam(":categoria", $categoria, PDO::PARAM_STR);
             $stmt->bindParam(":precio", $precio, PDO::PARAM_STR);
+            $stmt->bindParam(":creado_por", $creado_por, PDO::PARAM_INT);
+
+            // Vincular parámetros opcionales
+            if ($imagen !== null) {
+                $stmt->bindParam(":imagen", $imagen, PDO::PARAM_STR);
+            }
+
+            if ($destacado !== null) {
+                $stmt->bindParam(":destacado", $destacado, PDO::PARAM_INT);
+            }
 
             return $stmt->execute();
         } catch (PDOException $e) {
@@ -152,34 +220,45 @@ class EventoModel
         }
     }
 
-    public static function mdlEditarEvento($id_evento, $titulo, $descripcion, $fecha, $hora, $ubicacion, $categoria, $precio, $imagen = null) {
+    /**
+     * Edita un evento existente
+     * @param int $id_evento ID del evento
+     * @param string $titulo Título del evento
+     * @param string $descripcion Descripción del evento
+     * @param string $fecha Fecha del evento
+     * @param string $hora Hora del evento
+     * @param string $ubicacion Ubicación del evento
+     * @param string $categoria Categoría del evento
+     * @param float $precio Precio del evento
+     * @param string|null $imagen Ruta de la imagen
+     * @param int $destacado 1 si es destacado, 0 si no
+     * @return bool
+     */
+    public static function mdlEditarEvento($id_evento, $titulo, $descripcion, $fecha, $hora, $ubicacion, $categoria, $precio, $imagen = null, $destacado = null) {
         try {
             $conexion = Conexion::conectar();
 
-            // If an image was provided, update that field as well
-            if ($imagen) {
-                $stmt = $conexion->prepare("UPDATE evento 
-                    SET titulo = :titulo, 
-                        descripcion = :descripcion, 
-                        fecha = :fecha, 
-                        hora = :hora, 
-                        ubicacion = :ubicacion, 
-                        categoria = :categoria, 
-                        precio = :precio,
-                        imagen_nombre = :imagen
-                    WHERE id_evento = :id_evento");
-                $stmt->bindParam(":imagen", $imagen, PDO::PARAM_STR);
-            } else {
-                $stmt = $conexion->prepare("UPDATE evento 
-                    SET titulo = :titulo, 
-                        descripcion = :descripcion, 
-                        fecha = :fecha, 
-                        hora = :hora, 
-                        ubicacion = :ubicacion, 
-                        categoria = :categoria, 
-                        precio = :precio
-                    WHERE id_evento = :id_evento");
+            $sql = "UPDATE evento 
+                   SET titulo = :titulo, 
+                       descripcion = :descripcion, 
+                       fecha = :fecha, 
+                       hora = :hora, 
+                       ubicacion = :ubicacion, 
+                       categoria = :categoria, 
+                       precio = :precio";
+
+            // Agregar campos opcionales si están presentes
+            if ($imagen !== null) {
+                $sql .= ", imagen_nombre = :imagen";
             }
+
+            if ($destacado !== null) {
+                $sql .= ", destacado = :destacado";
+            }
+
+            $sql .= " WHERE id_evento = :id_evento";
+
+            $stmt = $conexion->prepare($sql);
 
             $stmt->bindParam(":id_evento", $id_evento, PDO::PARAM_INT);
             $stmt->bindParam(":titulo", $titulo, PDO::PARAM_STR);
@@ -190,6 +269,15 @@ class EventoModel
             $stmt->bindParam(":categoria", $categoria, PDO::PARAM_STR);
             $stmt->bindParam(":precio", $precio, PDO::PARAM_STR);
 
+            // Vincular parámetros opcionales
+            if ($imagen !== null) {
+                $stmt->bindParam(":imagen", $imagen, PDO::PARAM_STR);
+            }
+
+            if ($destacado !== null) {
+                $stmt->bindParam(":destacado", $destacado, PDO::PARAM_INT);
+            }
+
             return $stmt->execute();
         } catch (PDOException $e) {
             error_log("Error al editar evento: " . $e->getMessage());
@@ -197,6 +285,11 @@ class EventoModel
         }
     }
 
+    /**
+     * Elimina un evento
+     * @param int $id_evento ID del evento
+     * @return bool
+     */
     public static function mdlEliminarEvento($id_evento) {
         try {
             $conexion = Conexion::conectar();
@@ -205,6 +298,234 @@ class EventoModel
             return $stmt->execute();
         } catch (PDOException $e) {
             error_log("Error al eliminar evento: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Verifica si un evento tiene inscripciones
+     * @param int $id_evento ID del evento
+     * @return bool
+     */
+    public static function mdlTieneInscripciones($id_evento) {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("
+                SELECT COUNT(*) as total FROM inscripcion WHERE id_evento = :id_evento
+            ");
+            $stmt->bindParam(":id_evento", $id_evento, PDO::PARAM_INT);
+            $stmt->execute();
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $resultado['total'] > 0;
+        } catch (PDOException $e) {
+            error_log("Error al verificar inscripciones del evento: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Verifica si un evento tiene pagos
+     * @param int $id_evento ID del evento
+     * @return bool
+     */
+    public static function mdlTienePagos($id_evento) {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("
+                SELECT COUNT(*) as total FROM pago WHERE id_evento = :id_evento
+            ");
+            $stmt->bindParam(":id_evento", $id_evento, PDO::PARAM_INT);
+            $stmt->execute();
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $resultado['total'] > 0;
+        } catch (PDOException $e) {
+            error_log("Error al verificar pagos del evento: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtiene eventos destacados
+     * @param int $limite Número máximo de eventos a devolver
+     * @return array
+     */
+    public static function mdlObtenerEventosDestacados($limite = 4) {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("
+                SELECT * FROM evento 
+                WHERE destacado = 1 AND fecha >= CURDATE()
+                ORDER BY fecha ASC
+                LIMIT :limite
+            ");
+            $stmt->bindParam(":limite", $limite, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error al obtener eventos destacados: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtiene próximos eventos
+     * @param int $limite Número máximo de eventos a devolver
+     * @return array
+     */
+    public static function mdlObtenerProximosEventos($limite = 5) {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("
+                SELECT * FROM evento 
+                WHERE fecha >= CURDATE()
+                ORDER BY fecha ASC
+                LIMIT :limite
+            ");
+            $stmt->bindParam(":limite", $limite, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error al obtener próximos eventos: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtiene eventos por categoría
+     * @param string $categoria Categoría de los eventos
+     * @param int $limite Número máximo de eventos a devolver
+     * @return array
+     */
+    public static function mdlObtenerEventosPorCategoria($categoria, $limite = 8) {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("
+                SELECT * FROM evento 
+                WHERE categoria = :categoria AND fecha >= CURDATE()
+                ORDER BY fecha ASC
+                LIMIT :limite
+            ");
+            $stmt->bindParam(":categoria", $categoria, PDO::PARAM_STR);
+            $stmt->bindParam(":limite", $limite, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error al obtener eventos por categoría: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Cuenta el número total de eventos
+     * @return int
+     */
+    public static function mdlContarEventos() {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("SELECT COUNT(*) as total FROM evento");
+            $stmt->execute();
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $resultado['total'];
+        } catch (PDOException $e) {
+            error_log("Error al contar eventos: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Cuenta el número de eventos por categoría
+     * @return array
+     */
+    public static function mdlContarEventosPorCategoria() {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("
+                SELECT categoria, COUNT(*) as total
+                FROM evento
+                GROUP BY categoria
+                ORDER BY total DESC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error al contar eventos por categoría: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtiene estadísticas de eventos por mes
+     * @param int $año Año para las estadísticas
+     * @return array
+     */
+    public static function mdlObtenerEstadisticasPorMes($año = null) {
+        try {
+            $conexion = Conexion::conectar();
+
+            if ($año === null) {
+                $año = date('Y');
+            }
+
+            $stmt = $conexion->prepare("
+                SELECT 
+                    MONTH(fecha) as mes,
+                    COUNT(*) as total
+                FROM evento
+                WHERE YEAR(fecha) = :anio
+                GROUP BY MONTH(fecha)
+                ORDER BY mes
+            ");
+            $stmt->bindParam(":anio", $año, PDO::PARAM_INT);
+            $stmt->execute();
+
+            // Preparar array con todos los meses (incluso los que no tienen eventos)
+            $estadisticas = [];
+            for ($i = 1; $i <= 12; $i++) {
+                $estadisticas[$i] = ['mes' => $i, 'total' => 0];
+            }
+
+            // Rellenar con datos reales
+            $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($resultados as $row) {
+                $estadisticas[$row['mes']]['total'] = $row['total'];
+            }
+
+            return array_values($estadisticas);
+        } catch (PDOException $e) {
+            error_log("Error al obtener estadísticas por mes: " . $e->getMessage());
+            return [];
+        }
+    }
+    /**
+     * Elimina todas las inscripciones asociadas a un evento
+     * @param int $id_evento ID del evento
+     * @return bool
+     */
+    public static function mdlEliminarInscripcionesPorEvento($id_evento) {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("DELETE FROM inscripcion WHERE id_evento = :id_evento");
+            $stmt->bindParam(":id_evento", $id_evento, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error al eliminar inscripciones del evento: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Elimina todos los pagos asociados a un evento
+     * @param int $id_evento ID del evento
+     * @return bool
+     */
+    public static function mdlEliminarPagosPorEvento($id_evento) {
+        try {
+            $conexion = Conexion::conectar();
+            $stmt = $conexion->prepare("DELETE FROM pago WHERE id_evento = :id_evento");
+            $stmt->bindParam(":id_evento", $id_evento, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error al eliminar pagos del evento: " . $e->getMessage());
             return false;
         }
     }

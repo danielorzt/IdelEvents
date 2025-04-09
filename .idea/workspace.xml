@@ -6,24 +6,38 @@
   <component name="ChangeListManager">
     <list default="true" id="3f619107-5b22-4173-9a64-d5585abe15c8" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/sqldialects.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/sqldialects.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/PagoModel.php" beforeDir="false" afterPath="$PROJECT_DIR$/models/PagoModel.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/views/cliente/dashboard.php" beforeDir="false" afterPath="$PROJECT_DIR$/views/cliente/dashboard.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/views/cliente/mis_pagos.php" beforeDir="false" afterPath="$PROJECT_DIR$/views/cliente/mis_pagos.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controllers/EventoController.php" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/EventoController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/newsletter_subscriptions.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/newsletter_subscriptions.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models - Shortcut.lnk" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/EventoModel.php" beforeDir="false" afterPath="$PROJECT_DIR$/models/EventoModel.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/ImageHandler.php" beforeDir="false" afterPath="$PROJECT_DIR$/models/ImageHandler.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ComposerSettings">
+  <component name="ComposerSettings" synchronizationState="SYNCHRONIZE">
+    <pharConfigPath>$PROJECT_DIR$/composer.json</pharConfigPath>
     <execution />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="PhpDebugGeneral" listening_started="true" />
-  <component name="PhpWorkspaceProjectConfiguration" interpreter_name="C:\xampp\php\php.exe" />
+  <component name="PhpServers">
+    <servers>
+      <server host="localhost" id="47c03d56-26d5-4144-857e-2ecd7602cba2" name="localhost" />
+    </servers>
+  </component>
+  <component name="PhpWorkspaceProjectConfiguration" interpreter_name="C:\xampp\php\php.exe">
+    <include_path>
+      <path value="$PROJECT_DIR$/vendor/composer" />
+      <path value="$PROJECT_DIR$/vendor/tecnickcom/tcpdf" />
+      <path value="$PROJECT_DIR$/vendor/phpmailer/phpmailer" />
+    </include_path>
+  </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -35,27 +49,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/xampp/htdocs/IdealEventsx&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;settings.qodana&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "JavaScript Debug.LoginController.php.executor": "Debug",
+    "JavaScript Debug.check_directories.php.executor": "Run",
+    "PHP Script.LoginController.php.executor": "Debug",
+    "PHP Script.check_directories.php.executor": "Run",
+    "PHP Script.index.php.executor": "Debug",
+    "PHP Script.move_images.php.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/xampp/htdocs/IdealEventsx",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "settings.php.debug.servers",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;mysql&quot;
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "mysql"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\xampp\htdocs\IdealEventsx" />
@@ -85,7 +105,10 @@
       <workItem from="1743736145656" duration="14374000" />
       <workItem from="1743791471163" duration="270000" />
       <workItem from="1743862403095" duration="3415000" />
-      <workItem from="1743885399607" duration="5961000" />
+      <workItem from="1743885399607" duration="6249000" />
+      <workItem from="1744077421157" duration="3645000" />
+      <workItem from="1744157604953" duration="2858000" />
+      <workItem from="1744162230330" duration="5495000" />
     </task>
     <servers />
   </component>
