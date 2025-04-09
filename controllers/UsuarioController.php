@@ -1,8 +1,348 @@
 <?php
 session_start();
-require_once "../models/LoginModel.php";
+require_once __DIR__ . "/../models/UsuarioModel.php";
+require_once __DIR__ . "/../models/LoginModel.php";
 
 class UsuarioController {
+
+    /**
+     * Método principal para manejar las solicitudes
+     */
+    public function handleRequest() {
+        // Verificar si ya hay una sesión iniciada
+        if (!isset($_SESSION['id_usuario'])) {
+            header("Location: /IdealEventsx/views/login.php");
+            exit();
+        }
+
+        $action = isset($_GET['action']) ? $_GET['action'] : '';
+
+        switch ($action) {
+            case 'crear':
+                $this->crear();
+                break;
+            case 'actualizar':
+                $this->actualizar();
+                break;
+            case 'eliminar':
+                $this->eliminar();
+                break;
+            case 'cambiarRol':
+                $this->cambiarRol();
+                break;
+            case 'actualizarPerfil':
+                $this->actualizarPerfil();
+                break;
+            case 'cambiarPassword':
+                $this->cambiarPassword();
+                break;
+            case 'guardarPreferencias':
+                $this->guardarPreferencias();
+                break;
+            case 'eliminarCuenta':
+                $this->eliminarCuenta();
+                break;
+            default:
+                header("Location: /IdealEventsx/views/admin/usuarios.php");
+                exit();
+        }
+    }
+
+    /**
+     * Crear un nuevo usuario (para admin)
+     */
+    private function crear() {
+        // Verificar permisos de administrador
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
+            $_SESSION['error'] = "No tienes permisos para realizar esta acción";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Verificar que se recibieron los datos necesarios
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = "Método no permitido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Obtener y validar datos del formulario
+        $nombre = trim($_POST['nombre'] ?? '');
+        $apellido = trim($_POST['apellido'] ?? '');
+        $tipo_documento = trim($_POST['tipo_documento'] ?? '');
+        $documento = trim($_POST['documento'] ?? '');
+        $fecha_nacimiento = trim($_POST['fecha_nacimiento'] ?? '');
+        $genero = trim($_POST['genero'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+        $confirmar_password = trim($_POST['confirmar_password'] ?? '');
+        $rol = trim($_POST['rol'] ?? 'cliente');
+
+        // Validar campos obligatorios
+        if (empty($nombre) || empty($apellido) || empty($tipo_documento) || empty($documento) ||
+            empty($fecha_nacimiento) || empty($genero) || empty($email) || empty($password)) {
+            $_SESSION['error'] = "Todos los campos son obligatorios";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Validar que las contraseñas coincidan
+        if ($password !== $confirmar_password) {
+            $_SESSION['error'] = "Las contraseñas no coinciden";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Validar formato de email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = "El formato del correo electrónico no es válido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Validar longitud de contraseña
+        if (strlen($password) < 6) {
+            $_SESSION['error'] = "La contraseña debe tener al menos 6 caracteres";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Validar rol
+        if ($rol !== 'admin' && $rol !== 'cliente') {
+            $_SESSION['error'] = "Rol inválido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Crear usuario en la base de datos
+        $datos = [
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'tipo_documento' => $tipo_documento,
+            'documento' => $documento,
+            'fecha_nacimiento' => $fecha_nacimiento,
+            'genero' => $genero,
+            'email' => $email,
+            'password' => $password,
+            'rol' => $rol
+        ];
+
+        $resultado = UsuarioModel::mdlCrearUsuario($datos);
+
+        if ($resultado['exito']) {
+            $_SESSION['success'] = $resultado['mensaje'];
+        } else {
+            $_SESSION['error'] = $resultado['mensaje'];
+        }
+
+        header("Location: /IdealEventsx/views/admin/usuarios.php");
+        exit();
+    }
+
+    /**
+     * Actualizar un usuario existente (para admin)
+     */
+    private function actualizar() {
+        // Verificar permisos de administrador
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
+            $_SESSION['error'] = "No tienes permisos para realizar esta acción";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Verificar que se recibieron los datos necesarios
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = "Método no permitido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Obtener ID del usuario a actualizar
+        $id_usuario = isset($_POST['id_usuario']) ? intval($_POST['id_usuario']) : 0;
+        if ($id_usuario <= 0) {
+            $_SESSION['error'] = "ID de usuario inválido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Obtener y validar datos del formulario
+        $nombre = trim($_POST['nombre'] ?? '');
+        $apellido = trim($_POST['apellido'] ?? '');
+        $tipo_documento = trim($_POST['tipo_documento'] ?? '');
+        $documento = trim($_POST['documento'] ?? '');
+        $fecha_nacimiento = trim($_POST['fecha_nacimiento'] ?? '');
+        $genero = trim($_POST['genero'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $rol = trim($_POST['rol'] ?? 'cliente');
+        $cambiar_password = isset($_POST['cambiar_password']);
+        $password = $cambiar_password ? trim($_POST['password'] ?? '') : '';
+        $confirmar_password = $cambiar_password ? trim($_POST['confirmar_password'] ?? '') : '';
+
+        // Validar campos obligatorios
+        if (empty($nombre) || empty($apellido) || empty($tipo_documento) || empty($documento) ||
+            empty($fecha_nacimiento) || empty($genero) || empty($email)) {
+            $_SESSION['error'] = "Todos los campos son obligatorios";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Validar formato de email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = "El formato del correo electrónico no es válido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Validar rol
+        if ($rol !== 'admin' && $rol !== 'cliente') {
+            $_SESSION['error'] = "Rol inválido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Si se va a cambiar la contraseña, validar
+        if ($cambiar_password) {
+            if (empty($password) || empty($confirmar_password)) {
+                $_SESSION['error'] = "Debes proporcionar la nueva contraseña y su confirmación";
+                header("Location: /IdealEventsx/views/admin/usuarios.php");
+                exit();
+            }
+
+            if ($password !== $confirmar_password) {
+                $_SESSION['error'] = "Las contraseñas no coinciden";
+                header("Location: /IdealEventsx/views/admin/usuarios.php");
+                exit();
+            }
+
+            if (strlen($password) < 6) {
+                $_SESSION['error'] = "La contraseña debe tener al menos 6 caracteres";
+                header("Location: /IdealEventsx/views/admin/usuarios.php");
+                exit();
+            }
+        }
+
+        // Actualizar usuario en la base de datos
+        $datos = [
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'tipo_documento' => $tipo_documento,
+            'documento' => $documento,
+            'fecha_nacimiento' => $fecha_nacimiento,
+            'genero' => $genero,
+            'email' => $email,
+            'rol' => $rol
+        ];
+
+        // Si se va a cambiar la contraseña, agregarla a los datos
+        if ($cambiar_password) {
+            $datos['password'] = $password;
+        }
+
+        $resultado = UsuarioModel::mdlActualizarUsuario($id_usuario, $datos, $cambiar_password);
+
+        if ($resultado['exito']) {
+            $_SESSION['success'] = $resultado['mensaje'];
+        } else {
+            $_SESSION['error'] = $resultado['mensaje'];
+        }
+
+        header("Location: /IdealEventsx/views/admin/usuarios.php");
+        exit();
+    }
+
+    /**
+     * Eliminar un usuario (para admin)
+     */
+    private function eliminar() {
+        // Verificar permisos de administrador
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
+            $_SESSION['error'] = "No tienes permisos para realizar esta acción";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Obtener ID del usuario a eliminar
+        $id_usuario = isset($_GET['id']) ? intval($_GET['id']) : 0;
+        if ($id_usuario <= 0) {
+            $_SESSION['error'] = "ID de usuario inválido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Verificar que no se esté intentando eliminar a sí mismo
+        if ($id_usuario === $_SESSION['id_usuario']) {
+            $_SESSION['error'] = "No puedes eliminarte a ti mismo";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Eliminar usuario
+        $resultado = UsuarioModel::mdlEliminarUsuario($id_usuario);
+
+        if ($resultado['exito']) {
+            $_SESSION['success'] = $resultado['mensaje'];
+        } else {
+            $_SESSION['error'] = $resultado['mensaje'];
+        }
+
+        header("Location: /IdealEventsx/views/admin/usuarios.php");
+        exit();
+    }
+
+    /**
+     * Cambiar rol de un usuario (para admin)
+     */
+    private function cambiarRol() {
+        // Verificar permisos de administrador
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
+            $_SESSION['error'] = "No tienes permisos para realizar esta acción";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Verificar que se recibieron los datos necesarios
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = "Método no permitido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Obtener datos del formulario
+        $id_usuario = isset($_POST['id_usuario']) ? intval($_POST['id_usuario']) : 0;
+        $nuevo_rol = trim($_POST['nuevo_rol'] ?? '');
+
+        if ($id_usuario <= 0) {
+            $_SESSION['error'] = "ID de usuario inválido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Verificar que no se esté intentando cambiar su propio rol
+        if ($id_usuario === $_SESSION['id_usuario']) {
+            $_SESSION['error'] = "No puedes cambiar tu propio rol";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Validar rol
+        if ($nuevo_rol !== 'admin' && $nuevo_rol !== 'cliente') {
+            $_SESSION['error'] = "Rol inválido";
+            header("Location: /IdealEventsx/views/admin/usuarios.php");
+            exit();
+        }
+
+        // Cambiar rol
+        $resultado = UsuarioModel::mdlCambiarRol($id_usuario, $nuevo_rol);
+
+        if ($resultado['exito']) {
+            $_SESSION['success'] = $resultado['mensaje'];
+        } else {
+            $_SESSION['error'] = $resultado['mensaje'];
+        }
+
+        header("Location: /IdealEventsx/views/admin/usuarios.php");
+        exit();
+    }
 
     /**
      * Actualizar perfil del usuario
@@ -10,7 +350,7 @@ class UsuarioController {
     public function actualizarPerfil() {
         // Verificar que el usuario esté logueado
         if (!isset($_SESSION['id_usuario'])) {
-            header("Location: /IdealEventsx/login.php?error=" . urlencode("Debes iniciar sesión para actualizar tu perfil"));
+            header("Location: /IdealEventsx/views/login.php?error=" . urlencode("Debes iniciar sesión para actualizar tu perfil"));
             exit();
         }
 
@@ -51,19 +391,20 @@ class UsuarioController {
             'documento' => $documento,
             'fecha_nacimiento' => $fecha_nacimiento,
             'genero' => $genero,
-            'email' => $email
+            'email' => $email,
+            'rol' => $_SESSION['rol'] // Mantener el rol actual
         ];
 
-        $resultado = LoginModel::mdlActualizarUsuario($id_usuario, $datosUsuario);
+        $resultado = UsuarioModel::mdlActualizarUsuario($id_usuario, $datosUsuario);
 
-        if ($resultado) {
+        if ($resultado['exito']) {
             // Actualizar datos en la sesión
             $_SESSION['nombre'] = $nombre;
             $_SESSION['email'] = $email;
 
             header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?success=" . urlencode("Perfil actualizado correctamente"));
         } else {
-            header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?error=" . urlencode("Error al actualizar el perfil"));
+            header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?error=" . urlencode($resultado['mensaje']));
         }
         exit();
     }
@@ -74,7 +415,7 @@ class UsuarioController {
     public function cambiarPassword() {
         // Verificar que el usuario esté logueado
         if (!isset($_SESSION['id_usuario'])) {
-            header("Location: /IdealEventsx/login.php?error=" . urlencode("Debes iniciar sesión para cambiar tu contraseña"));
+            header("Location: /IdealEventsx/views/login.php?error=" . urlencode("Debes iniciar sesión para cambiar tu contraseña"));
             exit();
         }
 
@@ -103,7 +444,7 @@ class UsuarioController {
         }
 
         // Verificar contraseña actual
-        $usuario = LoginModel::mdlObtenerUsuarioPorId($id_usuario);
+        $usuario = UsuarioModel::mdlObtenerUsuarioPorId($id_usuario);
 
         if (!$usuario || !password_verify($password_actual, $usuario['password'])) {
             header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?error=" . urlencode("La contraseña actual es incorrecta"));
@@ -111,13 +452,15 @@ class UsuarioController {
         }
 
         // Actualizar contraseña
-        $password_hash = password_hash($password_nueva, PASSWORD_DEFAULT);
-        $resultado = LoginModel::mdlActualizarPassword($id_usuario, $password_hash);
+        $datos = [
+            'password' => $password_nueva
+        ];
+        $resultado = UsuarioModel::mdlActualizarUsuario($id_usuario, $datos, true);
 
-        if ($resultado) {
+        if ($resultado['exito']) {
             header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?success=" . urlencode("Contraseña actualizada correctamente"));
         } else {
-            header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?error=" . urlencode("Error al actualizar la contraseña"));
+            header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?error=" . urlencode($resultado['mensaje']));
         }
         exit();
     }
@@ -128,7 +471,7 @@ class UsuarioController {
     public function guardarPreferencias() {
         // Verificar que el usuario esté logueado
         if (!isset($_SESSION['id_usuario'])) {
-            header("Location: /IdealEventsx/login.php?error=" . urlencode("Debes iniciar sesión para guardar tus preferencias"));
+            header("Location: /IdealEventsx/views/login.php?error=" . urlencode("Debes iniciar sesión para guardar tus preferencias"));
             exit();
         }
 
@@ -159,7 +502,7 @@ class UsuarioController {
     public function eliminarCuenta() {
         // Verificar que el usuario esté logueado
         if (!isset($_SESSION['id_usuario'])) {
-            header("Location: /IdealEventsx/login.php?error=" . urlencode("Debes iniciar sesión para eliminar tu cuenta"));
+            header("Location: /IdealEventsx/views/login.php?error=" . urlencode("Debes iniciar sesión para eliminar tu cuenta"));
             exit();
         }
 
@@ -181,7 +524,7 @@ class UsuarioController {
         }
 
         // Verificar contraseña
-        $usuario = LoginModel::mdlObtenerUsuarioPorId($id_usuario);
+        $usuario = UsuarioModel::mdlObtenerUsuarioPorId($id_usuario);
 
         if (!$usuario || !password_verify($password, $usuario['password'])) {
             header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?error=" . urlencode("La contraseña es incorrecta"));
@@ -189,43 +532,18 @@ class UsuarioController {
         }
 
         // Eliminar cuenta
-        $resultado = LoginModel::mdlEliminarUsuario($id_usuario);
+        $resultado = UsuarioModel::mdlEliminarUsuario($id_usuario);
 
-        if ($resultado) {
+        if ($resultado['exito']) {
             // Cerrar sesión
             session_unset();
             session_destroy();
 
-            header("Location: /IdealEventsx/login.php?msg=" . urlencode("Tu cuenta ha sido eliminada correctamente") . "&status=success");
+            header("Location: /IdealEventsx/views/login.php?msg=" . urlencode("Tu cuenta ha sido eliminada correctamente") . "&status=success");
         } else {
-            header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?error=" . urlencode("Error al eliminar la cuenta"));
+            header("Location: /IdealEventsx/views/cliente/perfil_cliente.php?error=" . urlencode($resultado['mensaje']));
         }
         exit();
-    }
-
-    /**
-     * Método principal para manejar las solicitudes
-     */
-    public function handleRequest() {
-        $action = isset($_GET['action']) ? $_GET['action'] : '';
-
-        switch ($action) {
-            case 'actualizarPerfil':
-                $this->actualizarPerfil();
-                break;
-            case 'cambiarPassword':
-                $this->cambiarPassword();
-                break;
-            case 'guardarPreferencias':
-                $this->guardarPreferencias();
-                break;
-            case 'eliminarCuenta':
-                $this->eliminarCuenta();
-                break;
-            default:
-                header("Location: /IdealEventsx/views/cliente/dashboard.php");
-                exit();
-        }
     }
 }
 
