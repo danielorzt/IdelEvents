@@ -153,6 +153,12 @@ foreach ($misInscripciones as $inscripcion) {
             margin-top: 10px;
             margin-bottom: 15px;
         }
+        .modal-evento-img {
+            max-height: 300px;
+            object-fit: cover;
+            width: 100%;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -371,9 +377,18 @@ foreach ($misInscripciones as $inscripcion) {
                         </div>
                         <div class="card-footer bg-white">
                             <div class="d-grid gap-2">
-                                <a href="ver_evento.php?id=<?= $evento['id_evento'] ?>" class="btn btn-outline-primary">
+                                <button class="btn btn-outline-primary btn-ver-evento"
+                                        data-id="<?= $evento['id_evento'] ?>"
+                                        data-titulo="<?= htmlspecialchars($evento['titulo']) ?>"
+                                        data-descripcion="<?= htmlspecialchars($evento['descripcion']) ?>"
+                                        data-fecha="<?= date('d/m/Y', strtotime($evento['fecha'])) ?>"
+                                        data-hora="<?= htmlspecialchars($evento['hora']) ?>"
+                                        data-ubicacion="<?= htmlspecialchars($evento['ubicacion']) ?>"
+                                        data-categoria="<?= htmlspecialchars($evento['categoria']) ?>"
+                                        data-precio="<?= number_format($evento['precio'], 2) ?>"
+                                        data-imagen="<?= htmlspecialchars($evento['imagen_nombre'] ?? 'destacado1.jpg') ?>">
                                     <i class="bi bi-info-circle"></i> Detalles del evento
-                                </a>
+                                </button>
                                 <?php if (in_array($evento['id_evento'], $eventosInscritos)): ?>
                                     <button class="btn btn-outline-danger btn-cancelar-inscripcion"
                                             data-id="<?= $evento['id_evento'] ?>"
@@ -401,59 +416,70 @@ foreach ($misInscripciones as $inscripcion) {
             <p>No tienes inscripciones activas. Explora nuestros eventos y ¡inscríbete en los que te interesen!</p>
         </div>
     <?php else: ?>
-    <div class="table-responsive shadow-sm mb-5">
-        <table class="table table-hover">
-            <thead class="table-dark">
-            <tr>
-                <th>Evento</th>
-                <th>Fecha</th>
-                <th>Hora</th>
-                <th>Precio</th>
-                <th>Estado de Pago</th>
-                <th>Acciones</th>
-            </tr>
-            </thead>
-            <!-- Tabla de inscripciones corregida -->
-            <tbody>
-            <?php foreach ($misInscripciones as $inscripcion):
-                $evento = EventoModel::mdlObtenerEventoPorId($inscripcion['id_evento']);
-                $estadoPago = isset($inscripcion['estado_pago']) ? $inscripcion['estado_pago'] : 'pendiente';
-                ?>
+        <div class="table-responsive shadow-sm mb-5">
+            <table class="table table-hover">
+                <thead class="table-dark">
                 <tr>
-                    <td><?= htmlspecialchars($evento['titulo']) ?></td>
-                    <td><?= date('d/m/Y', strtotime($evento['fecha'])) ?></td>
-                    <td><?= htmlspecialchars($evento['hora']) ?></td>
-                    <td>$<?= number_format($evento['precio'], 2) ?></td>
-                    <td>
-                        <?php if ($estadoPago === 'completado'): ?>
-                            <span class="badge bg-success">Pagado</span>
-                        <?php elseif ($estadoPago === 'rechazado'): ?>
-                            <span class="badge bg-danger">Rechazado</span>
-                        <?php else: ?>
-                            <span class="badge bg-warning text-dark">Pendiente</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <a href="ver_evento.php?id=<?= $evento['id_evento'] ?>" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                        <?php if ($estadoPago !== 'completado'): ?>
-                            <!-- CORREGIDO: Ahora pasamos el id_evento en lugar del id_inscripcion -->
-                            <a href="realizar_pago.php?id=<?= $evento['id_evento'] ?>" class="btn btn-sm btn-success">
-                                <i class="bi bi-credit-card"></i>
-                            </a>
-                        <?php endif; ?>
-                        <button class="btn btn-sm btn-outline-danger btn-cancelar-inscripcion"
-                                data-id="<?= $inscripcion['id_inscripcion'] ?>"
-                                data-tipo="inscripcion">
-                            <i class="bi bi-x-circle"></i>
-                        </button>
-                    </td>
+                    <th>Evento</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Precio</th>
+                    <th>Estado de Pago</th>
+                    <th>Acciones</th>
                 </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <!-- Tabla de inscripciones corregida -->
+                <tbody>
+                <?php foreach ($misInscripciones as $inscripcion):
+                    $evento = EventoModel::mdlObtenerEventoPorId($inscripcion['id_evento']);
+                    $estadoPago = isset($inscripcion['estado_pago']) ? $inscripcion['estado_pago'] : 'pendiente';
+                    ?>
+                    <tr>
+                        <td><?= htmlspecialchars($evento['titulo']) ?></td>
+                        <td><?= date('d/m/Y', strtotime($evento['fecha'])) ?></td>
+                        <td><?= htmlspecialchars($evento['hora']) ?></td>
+                        <td>$<?= number_format($evento['precio'], 2) ?></td>
+                        <td>
+                            <?php if ($estadoPago === 'completado'): ?>
+                                <span class="badge bg-success">Pagado</span>
+                            <?php elseif ($estadoPago === 'rechazado'): ?>
+                                <span class="badge bg-danger">Rechazado</span>
+                            <?php else: ?>
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary btn-ver-evento"
+                                    data-id="<?= $evento['id_evento'] ?>"
+                                    data-titulo="<?= htmlspecialchars($evento['titulo']) ?>"
+                                    data-descripcion="<?= htmlspecialchars($evento['descripcion']) ?>"
+                                    data-fecha="<?= date('d/m/Y', strtotime($evento['fecha'])) ?>"
+                                    data-hora="<?= htmlspecialchars($evento['hora']) ?>"
+                                    data-ubicacion="<?= htmlspecialchars($evento['ubicacion']) ?>"
+                                    data-categoria="<?= htmlspecialchars($evento['categoria']) ?>"
+                                    data-precio="<?= number_format($evento['precio'], 2) ?>"
+                                    data-imagen="<?= htmlspecialchars($evento['imagen_nombre'] ?? 'destacado1.jpg') ?>">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <?php if ($estadoPago !== 'completado'): ?>
+                                <button class="btn btn-sm btn-success btn-pagar-evento"
+                                        data-id="<?= $evento['id_evento'] ?>"
+                                        data-titulo="<?= htmlspecialchars($evento['titulo']) ?>"
+                                        data-precio="<?= number_format($evento['precio'], 2) ?>">
+                                    <i class="bi bi-credit-card"></i>
+                                </button>
+                            <?php endif; ?>
+                            <button class="btn btn-sm btn-outline-danger btn-cancelar-inscripcion"
+                                    data-id="<?= $inscripcion['id_inscripcion'] ?>"
+                                    data-tipo="inscripcion">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     <?php endif; ?>
 
     <!-- Próximos Eventos Destacados -->
@@ -475,7 +501,17 @@ foreach ($misInscripciones as $inscripcion) {
                                     <i class="bi bi-clock ms-2"></i> 20:00
                                 </small>
                             </p>
-                            <a href="#" class="btn btn-sm btn-primary">Ver detalles</a>
+                            <button class="btn btn-sm btn-primary btn-ver-evento-destacado"
+                                    data-titulo="Concierto de Rock"
+                                    data-descripcion="Una experiencia musical inolvidable con las mejores bandas del momento. Disfruta de una noche llena de buena música y energía positiva."
+                                    data-fecha="15/12/2023"
+                                    data-hora="20:00"
+                                    data-ubicacion="Estadio Nacional"
+                                    data-categoria="Concierto"
+                                    data-precio="50.00"
+                                    data-imagen="destacado1.jpg">
+                                Ver detalles
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -497,7 +533,17 @@ foreach ($misInscripciones as $inscripcion) {
                                     <i class="bi bi-clock ms-2"></i> 10:00
                                 </small>
                             </p>
-                            <a href="#" class="btn btn-sm btn-primary">Ver detalles</a>
+                            <button class="btn btn-sm btn-primary btn-ver-evento-destacado"
+                                    data-titulo="Feria Tecnológica"
+                                    data-descripcion="Descubre las últimas innovaciones en tecnología y participa en talleres interactivos. Un espacio para conocer lo último del mundo tech."
+                                    data-fecha="22/12/2023"
+                                    data-hora="10:00"
+                                    data-ubicacion="Centro de Convenciones"
+                                    data-categoria="Tecnología"
+                                    data-precio="15.00"
+                                    data-imagen="destacado2.jpg">
+                                Ver detalles
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -576,6 +622,105 @@ foreach ($misInscripciones as $inscripcion) {
     </div>
 </footer>
 
+<!-- Modal Ver Evento -->
+<div class="modal fade" id="modalVerEvento" tabindex="-1" aria-labelledby="modalVerEventoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalVerEventoLabel"><i class="bi bi-info-circle me-2"></i><span id="modal-evento-titulo"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <img id="modal-evento-imagen" src="" class="modal-evento-img" alt="Imagen del evento">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="mb-3">
+                            <span class="badge bg-primary" id="modal-evento-categoria"></span>
+                            <span class="badge bg-secondary ms-2">$<span id="modal-evento-precio"></span></span>
+                        </div>
+                        <p><i class="bi bi-calendar-event me-2"></i><strong>Fecha:</strong> <span id="modal-evento-fecha"></span></p>
+                        <p><i class="bi bi-clock me-2"></i><strong>Hora:</strong> <span id="modal-evento-hora"></span></p>
+                        <p><i class="bi bi-geo-alt me-2"></i><strong>Ubicación:</strong> <span id="modal-evento-ubicacion"></span></p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <h5>Descripción</h5>
+                        <p id="modal-evento-descripcion"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-success" id="modal-btn-inscribir">Inscribirme</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Realizar Pago -->
+<div class="modal fade" id="modalRealizarPago" tabindex="-1" aria-labelledby="modalRealizarPagoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalRealizarPagoLabel"><i class="bi bi-credit-card me-2"></i>Realizar Pago</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <h4>Detalles del Pago</h4>
+                    <p>Estás a punto de realizar el pago para el evento:</p>
+                    <h5 id="modal-pago-titulo" class="fw-bold"></h5>
+                    <p>Monto a pagar: <span class="badge bg-primary fs-5">$<span id="modal-pago-monto"></span></span></p>
+                </div>
+
+                <form id="formPago" action="../../controllers/PagoController.php?action=procesar" method="POST">
+                    <input type="hidden" id="modal-pago-id-evento" name="id_evento">
+                    <input type="hidden" id="modal-pago-precio" name="monto">
+
+                    <div class="mb-3">
+                        <label for="tarjeta" class="form-label">Número de Tarjeta</label>
+                        <input type="text" class="form-control" id="tarjeta" placeholder="1234 5678 9012 3456" required>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="vencimiento" class="form-label">Fecha de Vencimiento</label>
+                            <input type="text" class="form-control" id="vencimiento" placeholder="MM/AA" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="cvv" class="form-label">CVV</label>
+                            <input type="text" class="form-control" id="cvv" placeholder="123" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nombre_tarjeta" class="form-label">Nombre en la Tarjeta</label>
+                        <input type="text" class="form-control" id="nombre_tarjeta" placeholder="NOMBRE APELLIDO" required>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="guardar_tarjeta">
+                        <label class="form-check-label" for="guardar_tarjeta">Guardar esta tarjeta para futuros pagos</label>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <small><i class="bi bi-shield-lock"></i> Tus datos están protegidos con encriptación de 256 bits.</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-realizar-pago">
+                    <i class="bi bi-credit-card me-1"></i> Realizar Pago
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Bootstrap JS y SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
@@ -583,6 +728,147 @@ foreach ($misInscripciones as $inscripcion) {
 
 <script>
     $(document).ready(function() {
+        // Manejar el clic en el botón de ver detalles de evento
+        $('.btn-ver-evento, .btn-ver-evento-destacado').on('click', function() {
+            const id = $(this).data('id');
+            const titulo = $(this).data('titulo');
+            const descripcion = $(this).data('descripcion');
+            const fecha = $(this).data('fecha');
+            const hora = $(this).data('hora');
+            const ubicacion = $(this).data('ubicacion');
+            const categoria = $(this).data('categoria');
+            const precio = $(this).data('precio');
+            const imagen = $(this).data('imagen');
+
+            $('#modal-evento-titulo').text(titulo);
+            $('#modal-evento-descripcion').text(descripcion);
+            $('#modal-evento-fecha').text(fecha);
+            $('#modal-evento-hora').text(hora);
+            $('#modal-evento-ubicacion').text(ubicacion);
+            $('#modal-evento-categoria').text(categoria);
+            $('#modal-evento-precio').text(precio);
+            $('#modal-evento-imagen').attr('src', '../../public/img/eventos/' + imagen);
+
+            // Actualizar botón de inscripción
+            $('#modal-btn-inscribir').data('id', id);
+            $('#modal-btn-inscribir').show();
+
+            // Comprobar si el usuario ya está inscrito
+            const eventosInscritos = <?= json_encode($eventosInscritos) ?>;
+            if (eventosInscritos.includes(parseInt(id))) {
+                $('#modal-btn-inscribir').hide();
+            }
+
+            $('#modalVerEvento').modal('show');
+        });
+
+        // Manejar el clic en el botón de inscripción desde el modal
+        $('#modal-btn-inscribir').on('click', function() {
+            const idEvento = $(this).data('id');
+            $('#modalVerEvento').modal('hide');
+
+            // Mostrar confirmación
+            Swal.fire({
+                title: '¿Confirmar inscripción?',
+                text: "¿Deseas inscribirte a este evento?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#1cc88a',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, inscribirme',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Realizar la petición AJAX para inscribirse
+                    $.ajax({
+                        url: '../../controllers/InscripcionController.php?action=inscribir',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            id_evento: idEvento
+                        },
+                        beforeSend: function() {
+                            Swal.fire({
+                                title: 'Procesando...',
+                                text: 'Estamos procesando tu inscripción',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                showConfirmButton: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                        },
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                // Mostrar mensaje de éxito
+                                Swal.fire({
+                                    title: '¡Inscripción exitosa!',
+                                    text: response.message,
+                                    icon: 'success',
+                                    confirmButtonColor: '#1cc88a'
+                                }).then(() => {
+                                    // Recargar la página para mostrar la inscripción
+                                    location.reload();
+                                });
+                            } else {
+                                // Mostrar mensaje de error
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: response.message,
+                                    icon: 'error',
+                                    confirmButtonColor: '#4e73df'
+                                });
+                            }
+                        },
+                        error: function() {
+                            // Mostrar mensaje de error
+                            Swal.fire({
+                                title: 'Error de conexión',
+                                text: 'No se pudo completar la solicitud. Intenta nuevamente.',
+                                icon: 'error',
+                                confirmButtonColor: '#4e73df'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        // Manejar el clic en el botón de realizar pago
+        $('.btn-pagar-evento').on('click', function() {
+            const idEvento = $(this).data('id');
+            const titulo = $(this).data('titulo');
+            const precio = $(this).data('precio');
+
+            $('#modal-pago-titulo').text(titulo);
+            $('#modal-pago-monto').text(precio);
+            $('#modal-pago-id-evento').val(idEvento);
+            $('#modal-pago-precio').val(precio);
+
+            $('#modalRealizarPago').modal('show');
+        });
+
+        // Manejar el clic en el botón de realizar pago del modal
+        $('#btn-realizar-pago').on('click', function() {
+            // Validar el formulario
+            const formPago = document.getElementById('formPago');
+            if (formPago.checkValidity()) {
+                // Enviar el formulario
+                formPago.submit();
+            } else {
+                // Mostrar un mensaje de validación
+                Swal.fire({
+                    title: 'Formulario incompleto',
+                    text: 'Por favor, completa todos los campos requeridos',
+                    icon: 'warning',
+                    confirmButtonColor: '#4e73df'
+                });
+                // Marcar campos inválidos
+                formPago.reportValidity();
+            }
+        });
+
         // Manejar la inscripción a eventos
         $('.btn-inscribir').on('click', function() {
             const idEvento = $(this).data('id');
@@ -704,7 +990,7 @@ foreach ($misInscripciones as $inscripcion) {
                                     confirmButtonColor: '#4e73df'
                                 });
                                 // Habilitar el botón nuevamente
-                                btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i> Cancelar Inscripción');
+                                btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i>');
                             }
                         },
                         error: function() {
@@ -716,7 +1002,7 @@ foreach ($misInscripciones as $inscripcion) {
                                 confirmButtonColor: '#4e73df'
                             });
                             // Habilitar el botón nuevamente
-                            btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i> Cancelar Inscripción');
+                            btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i>');
                         }
                     });
                 }
@@ -800,8 +1086,7 @@ foreach ($misInscripciones as $inscripcion) {
         });
         <?php endif; ?>
 
-        // Agregar este script en la sección JS existente, dentro del document.ready
-// Manejar el formulario de suscripción al boletín
+        // Manejar el formulario de suscripción al boletín
         $('#newsletterForm').on('submit', function(e) {
             e.preventDefault();
 
@@ -844,6 +1129,40 @@ foreach ($misInscripciones as $inscripcion) {
                     btnSuscribir.prop('disabled', false);
                 }
             });
+        });
+
+        // Formatear campos del formulario de pago
+        $('#tarjeta').on('input', function() {
+            let value = $(this).val().replace(/\D/g, '');
+            let formattedValue = '';
+
+            for (let i = 0; i < value.length; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formattedValue += ' ';
+                }
+                formattedValue += value.charAt(i);
+            }
+
+            $(this).val(formattedValue);
+        });
+
+        $('#vencimiento').on('input', function() {
+            let value = $(this).val().replace(/\D/g, '');
+
+            if (value.length > 0) {
+                if (value.length <= 2) {
+                    $(this).val(value);
+                } else {
+                    let mes = value.substring(0, 2);
+                    let ano = value.substring(2, 4);
+                    $(this).val(mes + '/' + ano);
+                }
+            }
+        });
+
+        $('#cvv').on('input', function() {
+            let value = $(this).val().replace(/\D/g, '');
+            $(this).val(value);
         });
     });
 </script>
