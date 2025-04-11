@@ -104,9 +104,6 @@ $usuarios = UsuarioModel::mdlListarUsuarios();
                 <li class="nav-item">
                     <a class="nav-link active" href="usuarios.php"><i class="bi bi-people me-1"></i> Usuarios</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="reportes.php"><i class="bi bi-graph-up me-1"></i> Reportes</a>
-                </li>
             </ul>
             <div class="dropdown ms-auto">
                 <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">

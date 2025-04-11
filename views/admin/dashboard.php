@@ -61,6 +61,17 @@ if ($_SESSION['rol'] !== 'admin') {
             background-color: #e74a3b;
             color: white;
         }
+        .btn-report {
+            background-color: #4e73df;
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn-report:hover {
+            background-color: #2e59d9;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body>
@@ -83,9 +94,6 @@ if ($_SESSION['rol'] !== 'admin') {
                 <li class="nav-item">
                     <a class="nav-link" href="usuarios.php"><i class="bi bi-people me-1"></i> Usuarios</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="reportes.php"><i class="bi bi-graph-up me-1"></i> Reportes</a>
-                </li>
             </ul>
             <div class="dropdown ms-auto">
                 <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -102,7 +110,12 @@ if ($_SESSION['rol'] !== 'admin') {
 </nav>
 
 <div class="container-fluid mt-4">
-    <h2 class="mb-4"><i class="bi bi-speedometer2 me-2"></i> Panel de Administración</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-speedometer2 me-2"></i> Panel de Administración</h2>
+        <a href="../../controllers/ReporteController.php?action=generar_pdf" class="btn btn-report">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Descargar Reporte Completo
+        </a>
+    </div>
 
     <!-- Tarjetas de Estadísticas -->
     <div class="row mb-4">
@@ -180,8 +193,11 @@ if ($_SESSION['rol'] !== 'admin') {
         <!-- Gráfico de Eventos -->
         <div class="col-lg-8 mb-4">
             <div class="card shadow">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold"><i class="bi bi-bar-chart me-2"></i>Eventos por Mes</h6>
+                    <a href="../../controllers/ReporteController.php?action=eventos_json" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download me-1"></i> Exportar Datos
+                    </a>
                 </div>
                 <div class="card-body">
                     <div class="chart-area">
@@ -228,8 +244,11 @@ if ($_SESSION['rol'] !== 'admin') {
 
     <!-- Tabla de Últimos Usuarios -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 fw-bold"><i class="bi bi-people-fill me-2"></i>Últimos Usuarios Registrados</h6>
+            <a href="../../controllers/ReporteController.php?action=usuarios_json" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-download me-1"></i> Exportar Usuarios
+            </a>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -263,6 +282,51 @@ if ($_SESSION['rol'] !== 'admin') {
                     </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen Financiero -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold"><i class="bi bi-cash-coin me-2"></i>Resumen Financiero</h6>
+            <a href="../../controllers/ReporteController.php?action=pagos_json" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-download me-1"></i> Exportar Finanzas
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <canvas id="pagosChart" height="250"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>Concepto</th>
+                            <th>Monto</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Ingresos Totales</td>
+                            <td class="fw-bold text-success">$8,750.00</td>
+                        </tr>
+                        <tr>
+                            <td>Ingresos del Mes</td>
+                            <td class="fw-bold">$3,240.00</td>
+                        </tr>
+                        <tr>
+                            <td>Pagos Pendientes</td>
+                            <td class="fw-bold text-warning">$1,350.00</td>
+                        </tr>
+                        <tr>
+                            <td>Valor Promedio por Inscripción</td>
+                            <td>$42.50</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -301,6 +365,42 @@ if ($_SESSION['rol'] !== 'admin') {
             scales: {
                 y: {
                     beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico de pagos
+    const ctxPagos = document.getElementById('pagosChart').getContext('2d');
+    const pagosChart = new Chart(ctxPagos, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pagos Completados', 'Pagos Pendientes', 'Pagos Rechazados'],
+            datasets: [{
+                data: [8750, 1350, 450],
+                backgroundColor: [
+                    'rgba(28, 200, 138, 0.8)',
+                    'rgba(246, 194, 62, 0.8)',
+                    'rgba(231, 74, 59, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(28, 200, 138, 1)',
+                    'rgba(246, 194, 62, 1)',
+                    'rgba(231, 74, 59, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Distribución de Pagos'
                 }
             }
         }
