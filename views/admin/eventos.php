@@ -246,8 +246,10 @@ $categorias = EventoModel::mdlObtenerCategorias();
                                             data-hora="<?= $evento['hora'] ?>"
                                             data-ubicacion="<?= htmlspecialchars($evento['ubicacion']) ?>"
                                             data-categoria="<?= htmlspecialchars($evento['categoria']) ?>"
-                                            data-precio="<?= $evento['precio'] ?>">
-                                        <i class="bi bi-pencil"></i> Editar
+                                            data-precio="<?= $evento['precio'] ?>"
+                                            data-imagen="<?= htmlspecialchars($evento['imagen_nombre']) ?>"
+                                            title="Editar evento">
+                                        <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-danger btn-eliminar" data-id="<?= $evento['id_evento'] ?>" data-titulo="<?= htmlspecialchars($evento['titulo']) ?>">
                                         <i class="bi bi-trash"></i>
@@ -405,11 +407,14 @@ $categorias = EventoModel::mdlObtenerCategorias();
                         <label for="edit_ubicacion" class="form-label">Ubicación *</label>
                         <input type="text" class="form-control" id="edit_ubicacion" name="ubicacion" required>
                     </div>
-
                     <div class="mb-3">
                         <label for="edit_imagen" class="form-label">Imagen del Evento (dejar vacío para mantener la actual)</label>
                         <input type="file" class="form-control" id="edit_imagen" name="imagen" accept="image/*">
                         <div class="form-text">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 5MB.</div>
+                        <div id="current_image_container" class="mt-2" style="display: none;">
+                            <p>Imagen actual:</p>
+                            <img id="current_image" src="" alt="Imagen actual del evento" class="img-thumbnail" style="max-height: 100px;">
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -611,10 +616,18 @@ $categorias = EventoModel::mdlObtenerCategorias();
                 $('#ver_fecha_creacion').text(new Date(evento.fecha_creacion).toLocaleDateString());
 
                 // Imagen del evento
-                const imgSrc = evento.imagen_nombre
-                    ? '../../public/img/eventos/' + evento.imagen_nombre
-                    : '../../public/img/eventos/default-event.jpg';
+                let imgSrc;
+                if (evento.imagen_nombre) {
+                    if (evento.imagen_nombre.startsWith('uploads/')) {
+                        imgSrc = '../../' + evento.imagen_nombre;
+                    } else {
+                        imgSrc = '../../public/img/eventos/' + evento.imagen_nombre;
+                    }
+                } else {
+                    imgSrc = '../../public/img/eventos/default-event.jpg';
+                }
                 $('#ver_imagen').attr('src', imgSrc);
+
 
                 // Cargar inscripciones y pagos mediante AJAX
                 // Simulación para este ejemplo
@@ -637,6 +650,7 @@ $categorias = EventoModel::mdlObtenerCategorias();
             const ubicacion = $(this).data('ubicacion');
             const categoria = $(this).data('categoria');
             const precio = $(this).data('precio');
+            const imagePath = $(this).data('imagen');
 
             $('#edit_id_evento').val(id);
             $('#edit_titulo').val(titulo);
@@ -647,9 +661,16 @@ $categorias = EventoModel::mdlObtenerCategorias();
             $('#edit_categoria').val(categoria);
             $('#edit_precio').val(precio);
 
+            // Show current image if available
+            if (imagePath) {
+                $('#current_image').attr('src', '../../public/img/eventos/' + imagePath);
+                $('#current_image_container').show();
+            } else {
+                $('#current_image_container').hide();
+            }
+
             $('#modalEditarEvento').modal('show');
         });
-
         // Botón eliminar evento
         $('.btn-eliminar').click(function() {
             const id = $(this).data('id');

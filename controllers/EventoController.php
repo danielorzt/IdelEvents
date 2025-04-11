@@ -191,8 +191,12 @@ class EventoController {
                     $imageHandler = new ImageHandler();
                     $resultadoImagen = $imageHandler->uploadImage($_FILES['imagen'], 'eventos');
                     $imagen = $resultadoImagen['ruta']; // Aquí guardamos la ruta relativa
+
+                    // Debug - log image path
+                    error_log("Image uploaded for new event - Path: " . $imagen);
                 } catch (Exception $e) {
                     $_SESSION['error'] = "Error al subir la imagen: " . $e->getMessage();
+                    error_log("Error uploading image: " . $e->getMessage());
                     $this->redirectBack();
                     return;
                 }
@@ -209,6 +213,7 @@ class EventoController {
                 }
             } catch (Exception $e) {
                 $_SESSION['error'] = "Error al crear el evento: " . $e->getMessage();
+                error_log("Error creating event: " . $e->getMessage());
             }
 
             $this->redirectBack();
@@ -220,7 +225,7 @@ class EventoController {
 
     // Método para actualizar un evento
     public function actualizar() {
-        // Verificar si ya hay una sesión iniciada
+        // Verify session started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -236,19 +241,19 @@ class EventoController {
             $precio = isset($_POST['precio']) ? floatval($_POST['precio']) : 0.00;
             $destacado = isset($_POST['destacado']) ? 1 : 0;
 
-            // Verificar si se seleccionó una nueva categoría
+            // Check for new category
             if ($categoria === 'nueva' && isset($_POST['nuevaCategoria']) && !empty($_POST['nuevaCategoria'])) {
                 $categoria = trim($_POST['nuevaCategoria']);
             }
 
-            // Validaciones
+            // Basic validations
             if (empty($titulo) || empty($descripcion) || empty($fecha) || empty($hora) || empty($ubicacion) || empty($categoria)) {
                 $_SESSION['error'] = "Todos los campos marcados con * son obligatorios";
                 $this->redirectBack();
                 return;
             }
 
-            // Verificar que el evento exista
+            // Check if event exists
             $evento = EventoModel::mdlObtenerEventoPorId($id_evento);
             if (!$evento) {
                 $_SESSION['error'] = "El evento que intentas editar no existe";
@@ -261,15 +266,16 @@ class EventoController {
             if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
                 try {
                     $imageHandler = new ImageHandler();
-                    $resultadoImagen = $imageHandler->uploadImage($_FILES['imagen'], 'eventos');
-
-                    // Usar la ruta relativa que se devuelve (eventos/año/mes/nombre.jpg)
+                    // Get old image path to delete if needed
+                    $old_image = isset($evento['imagen_nombre']) ? $evento['imagen_nombre'] : null;
+                    $resultadoImagen = $imageHandler->uploadImage($_FILES['imagen'], 'eventos', $old_image);
                     $imagen = $resultadoImagen['ruta'];
 
-                    // Verificar y mostrar información para depuración
-                    error_log("Imagen subida: " . $imagen);
+                    // Debug - log image path
+                    error_log("Image uploaded for event update - Path: " . $imagen);
                 } catch (Exception $e) {
                     $_SESSION['error'] = "Error al subir la imagen: " . $e->getMessage();
+                    error_log("Error uploading image for update: " . $e->getMessage());
                     $this->redirectBack();
                     return;
                 }
@@ -285,6 +291,7 @@ class EventoController {
                 }
             } catch (Exception $e) {
                 $_SESSION['error'] = "Error al actualizar el evento: " . $e->getMessage();
+                error_log("Error updating event: " . $e->getMessage());
             }
 
             $this->redirectBack();
@@ -295,7 +302,6 @@ class EventoController {
     }
 
     // Método para eliminar un evento
-    // Método para eliminar un evento - versión modificada que no verifica inscripciones/pagos
     public function eliminar($id) {
         // Verificar si ya hay una sesión iniciada
         if (session_status() === PHP_SESSION_NONE) {
@@ -316,23 +322,14 @@ class EventoController {
             return;
         }
 
-        /* COMENTAMOS ESTA VERIFICACIÓN PARA PERMITIR ELIMINAR EVENTOS CON INSCRIPCIONES/PAGOS
-        // Comprobar si hay inscripciones o pagos asociados
-        $tieneInscripciones = EventoModel::mdlTieneInscripciones($id);
-        $tienePagos = EventoModel::mdlTienePagos($id);
-
-        if ($tieneInscripciones || $tienePagos) {
-            $_SESSION['error'] = "No se puede eliminar el evento porque hay inscripciones o pagos asociados";
-            $this->redirectBack();
-            return;
-        }
-        */
-
-        // Eliminar la imagen asociada si existe
+        // Delete associated image if exists
         if (!empty($evento['imagen_nombre'])) {
-            $rutaImagen = __DIR__ . '/../public/img/eventos/' . $evento['imagen_nombre'];
-            if (file_exists($rutaImagen)) {
-                unlink($rutaImagen);
+            try {
+                $imageHandler = new ImageHandler();
+                $imageHandler->deleteImage($evento['imagen_nombre']);
+            } catch (Exception $e) {
+                error_log("Error deleting image: " . $e->getMessage());
+                // Continue with deletion even if image deletion fails
             }
         }
 
@@ -353,6 +350,7 @@ class EventoController {
             }
         } catch (Exception $e) {
             $_SESSION['error'] = "Error al eliminar el evento: " . $e->getMessage();
+            error_log("Error deleting event: " . $e->getMessage());
         }
 
         $this->redirectBack();
@@ -388,10 +386,4 @@ class EventoController {
             exit();
         }
     }
-}
-
-// Automatically handle the request if the file is accessed directly
-if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
-    $controller = new EventoController();
-    $controller->index();
 }

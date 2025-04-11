@@ -213,7 +213,14 @@ class EventoModel
                 $stmt->bindParam(":destacado", $destacado, PDO::PARAM_INT);
             }
 
-            return $stmt->execute();
+            $success = $stmt->execute();
+
+            // Log the query for debugging
+            if (!$success) {
+                error_log("Error executing query: " . implode(", ", $stmt->errorInfo()));
+            }
+
+            return $success;
         } catch (PDOException $e) {
             error_log("Error al agregar evento: " . $e->getMessage());
             return false;
@@ -278,7 +285,14 @@ class EventoModel
                 $stmt->bindParam(":destacado", $destacado, PDO::PARAM_INT);
             }
 
-            return $stmt->execute();
+            $success = $stmt->execute();
+
+            // Log the query for debugging
+            if (!$success) {
+                error_log("Error executing query: " . implode(", ", $stmt->errorInfo()));
+            }
+
+            return $success;
         } catch (PDOException $e) {
             error_log("Error al editar evento: " . $e->getMessage());
             return false;
@@ -496,6 +510,7 @@ class EventoModel
             return [];
         }
     }
+
     /**
      * Elimina todas las inscripciones asociadas a un evento
      * @param int $id_evento ID del evento

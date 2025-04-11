@@ -7,18 +7,28 @@ class ImageHandler
 
     public function __construct()
     {
-        // Asegurarnos de que la ruta siempre es desde la raíz del proyecto
-        $this->uploadDir = __DIR__ . '/../public/img/';
+        // Set the path to the uploads directory - make sure it exists
+        $this->uploadDir = __DIR__ . '/../uploads/';
+
+        // Create directory if it doesn't exist
+        if (!file_exists($this->uploadDir)) {
+            mkdir($this->uploadDir, 0755, true);
+        }
+
+        // Also ensure the eventos subdirectory exists
+        if (!file_exists($this->uploadDir . 'eventos/')) {
+            mkdir($this->uploadDir . 'eventos/', 0755, true);
+        }
     }
 
-    public function uploadImage($file, $subfolder = 'eventos')
+    public function uploadImage($file, $subfolder = 'eventos', $old_image = null)
     {
-        // Validaciones básicas
+        // Validate file data
         if (!isset($file['error']) || is_array($file['error'])) {
             throw new Exception('Parámetros inválidos.');
         }
 
-        // Verificar errores de subida
+        // Check upload errors
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $errorMessages = [
                 UPLOAD_ERR_INI_SIZE => 'El archivo excede el tamaño máximo permitido por PHP.',
@@ -37,7 +47,7 @@ class ImageHandler
             throw new Exception($errorMsg);
         }
 
-        // Validar tipo de archivo
+        // Validate file type
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($file['tmp_name']);
 
@@ -45,39 +55,44 @@ class ImageHandler
             throw new Exception('Tipo de archivo no permitido: ' . $mime . '. Solo se permiten JPG, PNG y GIF.');
         }
 
-        // Validar tamaño
+        // Validate file size
         if ($file['size'] > $this->maxSize) {
             throw new Exception('El archivo excede el tamaño máximo permitido de 5MB.');
         }
 
-        // Crear estructura de directorios por año/mes
+        // Create directory structure by year/month
         $currentYear = date('Y');
         $currentMonth = date('m');
         $targetDir = $this->uploadDir . $subfolder . '/' . $currentYear . '/' . $currentMonth . '/';
 
-        // Verificar y crear directorio si no existe
+        // Create directory if it doesn't exist
         if (!file_exists($targetDir)) {
             if (!mkdir($targetDir, 0755, true)) {
                 throw new Exception('No se pudo crear el directorio para guardar la imagen: ' . $targetDir);
             }
         }
 
-        // Generar nombre único para el archivo
+        // Delete old image if it exists
+        if ($old_image && file_exists(__DIR__ . '/../' . $old_image)) {
+            unlink(__DIR__ . '/../' . $old_image);
+        }
+
+        // Generate unique filename
         $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
         $filename = uniqid('img_', true) . '.' . $extension;
-        $relativePath = $subfolder . '/' . $currentYear . '/' . $currentMonth . '/' . $filename;
+        $relativePath = 'uploads/' . $subfolder . '/' . $currentYear . '/' . $currentMonth . '/' . $filename;
         $fullPath = $targetDir . $filename;
 
-        // Mover el archivo subido
+        // Move uploaded file
         if (!move_uploaded_file($file['tmp_name'], $fullPath)) {
             throw new Exception('No se pudo guardar el archivo subido en: ' . $fullPath);
         }
 
-        // Debug info
-        error_log("Imagen subida correctamente: " . $fullPath);
-        error_log("Ruta relativa: " . $relativePath);
+        // Debug info - write to log for troubleshooting
+        error_log("Image uploaded successfully - Full path: " . $fullPath);
+        error_log("Image relative path: " . $relativePath);
 
-        // Retornar información de la imagen
+        // Return image information
         return [
             'nombre_archivo' => $file['name'],
             'mime_type' => $mime,
@@ -87,32 +102,18 @@ class ImageHandler
         ];
     }
 
-    public function deleteImage($imageId)
+    public function deleteImage($imagePath)
     {
-        // Obtener información de la imagen desde la BD
-        $conexion = new Conexion();
-        $db = $conexion->getConnection();
-
-        $query = "SELECT ruta FROM imagenes WHERE id_imagen = ?";
-        $stmt = $db->prepare($query);
-        $stmt->execute([$imageId]);
-        $image = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$image) {
-            throw new Exception('Imagen no encontrada en la base de datos.');
+        if (empty($imagePath)) {
+            return true;
         }
 
-        // Eliminar archivo físico
-        $filePath = $this->uploadDir . $image['ruta'];
-        if (file_exists($filePath)) {
-            if (!unlink($filePath)) {
-                throw new Exception('No se pudo eliminar el archivo físico.');
-            }
+        $fullPath = __DIR__ . '/../' . $imagePath;
+
+        if (file_exists($fullPath)) {
+            return unlink($fullPath);
         }
 
-        // Eliminar registro de la BD
-        $query = "DELETE FROM imagenes WHERE id_imagen = ?";
-        $stmt = $db->prepare($query);
-        return $stmt->execute([$imageId]);
+        return false;
     }
 }
